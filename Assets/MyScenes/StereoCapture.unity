@@ -2041,6 +2041,7 @@ GameObject:
   - component: {fileID: 2090000004}
   - component: {fileID: 2090000005}
   - component: {fileID: 2090000006}
+  - component: {fileID: 2090000007}
   m_Layer: 0
   m_Name: ProbeExperiment
   m_TagString: Untagged
@@ -2079,7 +2080,7 @@ MonoBehaviour:
   m_rightCameraAccess: {fileID: 1722850221}
   m_anchorInitializer: {fileID: 2090000003}
   m_markerBaseCalibrationController: {fileID: 2090000006}
-  m_robotProbePoseProvider: {fileID: 2090000005}
+  m_robotProbePoseProvider: {fileID: 2090000007}
   m_debugText: {fileID: 461608846}
   m_outputFolderName: ProbeExperimentCaptures
   m_captureIntervalSeconds: 0.02
@@ -2127,7 +2128,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2090000000}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b8ddd94187c0274f92396ceda7bf222, type: 3}
   m_Name: 
@@ -2135,6 +2136,29 @@ MonoBehaviour:
   m_baseFromProbePosition: {x: 0, y: 0, z: 0}
   m_baseFromProbeEulerDegrees: {x: 0, y: 0, z: 0}
   m_poseValid: 1
+--- !u!114 &2090000007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2090000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c185f6f44764db2b8ef0b7d26886145, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_listenPort: 15000
+  m_pcHost: 127.0.0.1
+  m_pcSyncPort: 15001
+  m_syncIntervalSeconds: 1
+  m_maxAcceptedSyncRttSeconds: 0.02
+  m_syncSampleWindow: 8
+  m_poseBufferCapacity: 512
+  m_poseBufferDurationSeconds: 10
+  m_maxInterpolationSpanSeconds: 0.1
+  m_startOnEnable: 1
+  m_logPacketErrors: 0
 --- !u!114 &2090000006
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -272,23 +272,20 @@ namespace PassthroughCameraSamples.ProbeExperiment
 
             try
             {
-                bool robotPoseValid = m_robotProbePoseProvider.TryGetBaseFromProbe(
-                    out Pose baseFromProbe,
-                    out double robotTimestampSeconds);
-
                 CameraFrameData leftFrame = default;
                 CameraFrameData rightFrame = default;
                 bool hasLeft = m_recordLeftCamera && CaptureSingleCameraFrame(m_leftCameraAccess, "left", m_leftImageFolder, out leftFrame);
                 bool hasRight = m_recordRightCamera && CaptureSingleCameraFrame(m_rightCameraAccess, "right", m_rightImageFolder, out rightFrame);
+                RobotPoseFrameData leftRobot = QueryRobotPoseForFrame(hasLeft, leftFrame);
+                RobotPoseFrameData rightRobot = QueryRobotPoseForFrame(hasRight, rightFrame);
 
                 WriteFrameJsonLine(
                     hasLeft,
                     leftFrame,
+                    leftRobot,
                     hasRight,
                     rightFrame,
-                    robotPoseValid,
-                    baseFromProbe,
-                    robotTimestampSeconds);
+                    rightRobot);
 
                 m_frameIndex++;
                 UpdateDebugText($"Saved frame {m_frameIndex - 1}");
@@ -298,6 +295,38 @@ namespace PassthroughCameraSamples.ProbeExperiment
                 Debug.LogError($"ProbeExperiment: Failed to capture frame {m_frameIndex}. {e}", this);
                 UpdateDebugText($"Capture failed: {m_frameIndex}");
             }
+        }
+
+        /// <summary>
+        /// Queries the robot provider for the pose that matches one captured camera frame timestamp.
+        /// </summary>
+        private RobotPoseFrameData QueryRobotPoseForFrame(bool hasFrame, CameraFrameData frame)
+        {
+            if (!hasFrame)
+            {
+                return new RobotPoseFrameData
+                {
+                    valid = false,
+                    timingInfo = new RobotPoseTimingInfo
+                    {
+                        valid = false,
+                        mode = "invalid",
+                        invalidReason = "no_camera_frame"
+                    }
+                };
+            }
+
+            bool valid = m_robotProbePoseProvider.TryGetBaseFromProbeAt(
+                frame.timestampUnixSeconds,
+                out Pose baseFromProbe,
+                out RobotPoseTimingInfo timingInfo);
+
+            return new RobotPoseFrameData
+            {
+                valid = valid,
+                baseFromProbe = baseFromProbe,
+                timingInfo = timingInfo
+            };
         }
 
         /// <summary>
@@ -374,15 +403,16 @@ namespace PassthroughCameraSamples.ProbeExperiment
         private void WriteFrameJsonLine(
             bool hasLeft,
             CameraFrameData leftFrame,
+            RobotPoseFrameData leftRobot,
             bool hasRight,
             CameraFrameData rightFrame,
-            bool robotPoseValid,
-            Pose baseFromProbe,
-            double robotTimestampSeconds)
+            RobotPoseFrameData rightRobot)
         {
             var sb = new StringBuilder(4096);
             Pose worldFromBase = m_anchorInitializer.WorldFromBase;
             OVRPose headPose = OVRPlugin.GetNodePoseStateImmediate(OVRPlugin.Node.Head).Pose.ToOVRPose();
+            RobotPoseFrameData referenceRobot = hasLeft ? leftRobot : hasRight ? rightRobot : default;
+            string referenceCamera = hasLeft ? "left" : hasRight ? "right" : "none";
 
             sb.Append('{');
             sb.Append("\"frame_id\":");
@@ -391,18 +421,22 @@ namespace PassthroughCameraSamples.ProbeExperiment
             ProbeExperimentJson.AppendDouble(sb, Time.realtimeSinceStartupAsDouble);
             sb.Append(",\"anchor_locked\":true");
             sb.Append(",\"robot_pose_valid\":");
-            sb.Append(robotPoseValid ? "true" : "false");
+            sb.Append(referenceRobot.valid ? "true" : "false");
+            sb.Append(",\"robot_reference_camera\":");
+            ProbeExperimentJson.WriteString(sb, referenceCamera);
             sb.Append(",\"robot_timestamp_seconds\":");
-            ProbeExperimentJson.AppendDouble(sb, robotTimestampSeconds);
+            ProbeExperimentJson.AppendDouble(sb, referenceRobot.timingInfo.robotTimestampSeconds);
+            sb.Append(",\"robot_timing\":");
+            WriteRobotTimingInfo(sb, referenceRobot.timingInfo);
             sb.Append(",\"T_W_H\":");
             ProbeExperimentJson.WritePoseMatrix(sb, new Pose(headPose.position, headPose.orientation));
             sb.Append(",\"T_W_B\":");
             ProbeExperimentJson.WritePoseMatrix(sb, worldFromBase);
             sb.Append(",\"T_B_P\":");
-            ProbeExperimentJson.WritePoseMatrix(sb, baseFromProbe);
+            WritePoseOrNull(sb, referenceRobot.valid, referenceRobot.baseFromProbe);
 
-            WriteCameraFrameSection(sb, "left", hasLeft, leftFrame, worldFromBase, baseFromProbe, robotPoseValid);
-            WriteCameraFrameSection(sb, "right", hasRight, rightFrame, worldFromBase, baseFromProbe, robotPoseValid);
+            WriteCameraFrameSection(sb, "left", hasLeft, leftFrame, leftRobot, worldFromBase);
+            WriteCameraFrameSection(sb, "right", hasRight, rightFrame, rightRobot, worldFromBase);
 
             sb.Append('}');
             m_frameWriter.WriteLine(sb.ToString());
@@ -416,9 +450,8 @@ namespace PassthroughCameraSamples.ProbeExperiment
             string name,
             bool hasFrame,
             CameraFrameData frame,
-            Pose worldFromBase,
-            Pose baseFromProbe,
-            bool robotPoseValid)
+            RobotPoseFrameData robotFrame,
+            Pose worldFromBase)
         {
             sb.Append(",\"");
             sb.Append(name);
@@ -435,6 +468,12 @@ namespace PassthroughCameraSamples.ProbeExperiment
             ProbeExperimentJson.WriteString(sb, frame.relativeImagePath);
             sb.Append(",\"timestamp_unix_s\":");
             ProbeExperimentJson.AppendDouble(sb, frame.timestampUnixSeconds);
+            sb.Append(",\"robot_pose_valid\":");
+            sb.Append(robotFrame.valid ? "true" : "false");
+            sb.Append(",\"robot_timing\":");
+            WriteRobotTimingInfo(sb, robotFrame.timingInfo);
+            sb.Append(",\"T_B_P_at_camera_time\":");
+            WritePoseOrNull(sb, robotFrame.valid, robotFrame.baseFromProbe);
             sb.Append(",\"T_W_C\":");
             ProbeExperimentJson.WritePoseMatrix(sb, frame.worldFromCamera);
             sb.Append(",\"image_vertical_flip\":true");
@@ -448,12 +487,12 @@ namespace PassthroughCameraSamples.ProbeExperiment
             ProbeExperimentJson.WriteVerticalFlipIntrinsics(sb, frame.intrinsics, frame.resolution);
             sb.Append(",\"T_C_P_gt\":");
 
-            if (robotPoseValid)
+            if (robotFrame.valid)
             {
                 Pose cameraFromProbe = ProbeExperimentPoseMath.ComputeCameraFromProbe(
                     frame.worldFromCamera,
                     worldFromBase,
-                    baseFromProbe);
+                    robotFrame.baseFromProbe);
                 ProbeExperimentJson.WritePoseMatrix(sb, cameraFromProbe);
             }
             else
@@ -462,6 +501,56 @@ namespace PassthroughCameraSamples.ProbeExperiment
             }
 
             sb.Append('}');
+        }
+
+        /// <summary>
+        /// Appends robot timing metadata used to audit camera/robot timestamp alignment.
+        /// </summary>
+        private static void WriteRobotTimingInfo(StringBuilder sb, RobotPoseTimingInfo timingInfo)
+        {
+            sb.Append('{');
+            sb.Append("\"valid\":");
+            sb.Append(timingInfo.valid ? "true" : "false");
+            sb.Append(",\"mode\":");
+            ProbeExperimentJson.WriteString(sb, timingInfo.mode);
+            sb.Append(",\"invalid_reason\":");
+            ProbeExperimentJson.WriteString(sb, timingInfo.invalidReason);
+            sb.Append(",\"requested_timestamp_unix_s\":");
+            ProbeExperimentJson.AppendDouble(sb, timingInfo.requestedTimestampUnixSeconds);
+            sb.Append(",\"robot_timestamp_seconds\":");
+            ProbeExperimentJson.AppendDouble(sb, timingInfo.robotTimestampSeconds);
+            sb.Append(",\"pc_timestamp_unix_s\":");
+            ProbeExperimentJson.AppendDouble(sb, timingInfo.pcTimestampUnixSeconds);
+            sb.Append(",\"before_timestamp_unix_s\":");
+            ProbeExperimentJson.AppendDouble(sb, timingInfo.beforeTimestampUnixSeconds);
+            sb.Append(",\"after_timestamp_unix_s\":");
+            ProbeExperimentJson.AppendDouble(sb, timingInfo.afterTimestampUnixSeconds);
+            sb.Append(",\"robot_time_delta_s\":");
+            ProbeExperimentJson.AppendDouble(sb, timingInfo.timeDeltaSeconds);
+            sb.Append(",\"interpolation_span_s\":");
+            ProbeExperimentJson.AppendDouble(sb, timingInfo.interpolationSpanSeconds);
+            sb.Append(",\"pc_quest_offset_s\":");
+            ProbeExperimentJson.AppendDouble(sb, timingInfo.pcQuestOffsetSeconds);
+            sb.Append(",\"pc_quest_rtt_s\":");
+            ProbeExperimentJson.AppendDouble(sb, timingInfo.pcQuestRttSeconds);
+            sb.Append(",\"sequence\":");
+            sb.Append(timingInfo.sequence);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Appends a pose JSON object or null when no timestamp-aligned robot pose is available.
+        /// </summary>
+        private static void WritePoseOrNull(StringBuilder sb, bool valid, Pose pose)
+        {
+            if (valid)
+            {
+                ProbeExperimentJson.WritePoseMatrix(sb, pose);
+            }
+            else
+            {
+                sb.Append("null");
+            }
         }
 
         /// <summary>
@@ -585,6 +674,13 @@ namespace PassthroughCameraSamples.ProbeExperiment
             public Pose worldFromCamera;
             public PassthroughCameraAccess.CameraIntrinsics intrinsics;
             public Vector2Int resolution;
+        }
+
+        private struct RobotPoseFrameData
+        {
+            public bool valid;
+            public Pose baseFromProbe;
+            public RobotPoseTimingInfo timingInfo;
         }
     }
 }

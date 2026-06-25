@@ -75,6 +75,61 @@ namespace PassthroughCameraSamples.ProbeExperiment.Tests
             AssertApproximately(unityCameraFromMarker.position, new Vector3(0.1f, -0.2f, 1.5f), "unityCameraFromMarker.position");
             AssertApproximately(unityCameraFromMarker.rotation, Quaternion.identity, "unityCameraFromMarker.rotation");
 
+            var robotBuffer = new RobotPoseSampleBuffer(8, 5.0);
+            robotBuffer.Add(new RobotPoseSample
+            {
+                sequence = 1,
+                poseValid = true,
+                baseFromProbe = new Pose(Vector3.zero, Quaternion.identity),
+                robotTimestampSeconds = 10.0,
+                samplePcTimestampUnixSeconds = 100.0,
+                pcReceiveUnixSeconds = 100.0,
+                pcSendUnixSeconds = 100.0
+            });
+            robotBuffer.Add(new RobotPoseSample
+            {
+                sequence = 2,
+                poseValid = true,
+                baseFromProbe = new Pose(new Vector3(1f, 0f, 0f), Quaternion.Euler(0f, 90f, 0f)),
+                robotTimestampSeconds = 10.1,
+                samplePcTimestampUnixSeconds = 100.1,
+                pcReceiveUnixSeconds = 100.1,
+                pcSendUnixSeconds = 100.1
+            });
+
+            bool interpolated = robotBuffer.TrySampleAt(
+                100.05,
+                99.95,
+                0.1,
+                0.1,
+                0.002,
+                out Pose interpolatedPose,
+                out RobotPoseTimingInfo interpolatedTiming);
+            if (!interpolated)
+            {
+                throw new System.Exception($"Robot buffer interpolation failed: {interpolatedTiming.invalidReason}");
+            }
+
+            AssertApproximately(interpolatedPose.position, new Vector3(0.5f, 0f, 0f), "interpolatedPose.position");
+            AssertApproximately(interpolatedTiming.robotTimestampSeconds, 10.05f, "interpolatedTiming.robotTimestampSeconds");
+            if (interpolatedTiming.mode != "interpolated")
+            {
+                throw new System.Exception($"Expected interpolated mode, got {interpolatedTiming.mode}.");
+            }
+
+            bool tooOld = robotBuffer.TrySampleAt(
+                99.0,
+                98.9,
+                0.1,
+                0.1,
+                0.002,
+                out _,
+                out RobotPoseTimingInfo tooOldTiming);
+            if (tooOld || tooOldTiming.invalidReason != "too_old")
+            {
+                throw new System.Exception($"Expected too_old, got valid={tooOld} reason={tooOldTiming.invalidReason}.");
+            }
+
             string matrixJson = ProbeExperimentJson.WritePoseMatrix(worldFromCamera);
             if (!matrixJson.Contains("\"position\"") || !matrixJson.Contains("\"rotation_xyzw\"") || !matrixJson.Contains("\"matrix4x4\""))
             {
@@ -112,6 +167,17 @@ namespace PassthroughCameraSamples.ProbeExperiment.Tests
         private static void AssertApproximately(float actual, float expected, string label)
         {
             if (Mathf.Abs(actual - expected) > 0.0001f)
+            {
+                throw new System.Exception($"{label}: expected {expected}, got {actual}");
+            }
+        }
+
+        /// <summary>
+        /// Fails when two double values differ by more than a small tolerance.
+        /// </summary>
+        private static void AssertApproximately(double actual, double expected, string label)
+        {
+            if (System.Math.Abs(actual - expected) > 0.0001)
             {
                 throw new System.Exception($"{label}: expected {expected}, got {actual}");
             }
