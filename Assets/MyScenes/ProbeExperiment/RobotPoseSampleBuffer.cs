@@ -15,6 +15,8 @@ namespace PassthroughCameraSamples.ProbeExperiment
         public double samplePcTimestampUnixSeconds;
         public double pcReceiveUnixSeconds;
         public double pcSendUnixSeconds;
+        public float[] poseRaw;
+        public float[] normalizedData;
     }
 
     /// <summary>
@@ -133,6 +135,8 @@ namespace PassthroughCameraSamples.ProbeExperiment
                     interpolationSpanSeconds = 0.0,
                     pcQuestOffsetSeconds = pcQuestOffsetSeconds,
                     pcQuestRttSeconds = pcQuestRttSeconds,
+                    poseRaw = CopyFloatArray(first.poseRaw),
+                    normalizedData = CopyFloatArray(first.normalizedData),
                     sequence = first.sequence
                 };
                 return true;
@@ -208,6 +212,7 @@ namespace PassthroughCameraSamples.ProbeExperiment
                 baseFromProbe = new Pose(
                     Vector3.Lerp(before.baseFromProbe.position, after.baseFromProbe.position, t),
                     Quaternion.Slerp(before.baseFromProbe.rotation, after.baseFromProbe.rotation, t));
+                RobotPoseSample metadataSample = t < 0.5f ? before : after;
 
                 timingInfo = new RobotPoseTimingInfo
                 {
@@ -225,7 +230,9 @@ namespace PassthroughCameraSamples.ProbeExperiment
                     interpolationSpanSeconds = span,
                     pcQuestOffsetSeconds = pcQuestOffsetSeconds,
                     pcQuestRttSeconds = pcQuestRttSeconds,
-                    sequence = t < 0.5f ? before.sequence : after.sequence
+                    poseRaw = CopyFloatArray(metadataSample.poseRaw),
+                    normalizedData = CopyFloatArray(metadataSample.normalizedData),
+                    sequence = metadataSample.sequence
                 };
                 return true;
             }
@@ -275,6 +282,8 @@ namespace PassthroughCameraSamples.ProbeExperiment
                 interpolationSpanSeconds = 0.0,
                 pcQuestOffsetSeconds = pcQuestOffsetSeconds,
                 pcQuestRttSeconds = pcQuestRttSeconds,
+                poseRaw = null,
+                normalizedData = null,
                 sequence = 0
             };
         }
@@ -285,7 +294,21 @@ namespace PassthroughCameraSamples.ProbeExperiment
             timingInfo.beforeTimestampUnixSeconds = before.samplePcTimestampUnixSeconds;
             timingInfo.afterTimestampUnixSeconds = after.samplePcTimestampUnixSeconds;
             timingInfo.interpolationSpanSeconds = after.samplePcTimestampUnixSeconds - before.samplePcTimestampUnixSeconds;
+            timingInfo.poseRaw = CopyFloatArray(before.poseRaw);
+            timingInfo.normalizedData = CopyFloatArray(before.normalizedData);
             timingInfo.sequence = before.sequence;
+        }
+
+        private static float[] CopyFloatArray(float[] values)
+        {
+            if (values == null || values.Length == 0)
+            {
+                return null;
+            }
+
+            var copy = new float[values.Length];
+            values.CopyTo(copy, 0);
+            return copy;
         }
 
         private static double LerpDouble(double a, double b, float t)

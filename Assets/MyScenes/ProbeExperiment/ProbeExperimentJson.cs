@@ -80,6 +80,30 @@ namespace PassthroughCameraSamples.ProbeExperiment
         }
 
         /// <summary>
+        /// Appends a float array as JSON, or null when no values were supplied.
+        /// </summary>
+        public static void WriteFloatArrayOrNull(StringBuilder sb, float[] values)
+        {
+            if (values == null || values.Length == 0)
+            {
+                sb.Append("null");
+                return;
+            }
+
+            sb.Append('[');
+            for (int i = 0; i < values.Length; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+
+                AppendFloat(sb, values[i]);
+            }
+            sb.Append(']');
+        }
+
+        /// <summary>
         /// Appends original camera intrinsics and image size.
         /// </summary>
         public static void WriteIntrinsics(StringBuilder sb, PassthroughCameraAccess.CameraIntrinsics intrinsics, Vector2Int resolution)

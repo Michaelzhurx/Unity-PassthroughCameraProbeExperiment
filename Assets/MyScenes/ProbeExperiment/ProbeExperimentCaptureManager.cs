@@ -533,6 +533,10 @@ namespace PassthroughCameraSamples.ProbeExperiment
             ProbeExperimentJson.AppendDouble(sb, timingInfo.pcQuestOffsetSeconds);
             sb.Append(",\"pc_quest_rtt_s\":");
             ProbeExperimentJson.AppendDouble(sb, timingInfo.pcQuestRttSeconds);
+            sb.Append(",\"pose_raw\":");
+            ProbeExperimentJson.WriteFloatArrayOrNull(sb, timingInfo.poseRaw);
+            sb.Append(",\"normalized_data\":");
+            ProbeExperimentJson.WriteFloatArrayOrNull(sb, timingInfo.normalizedData);
             sb.Append(",\"sequence\":");
             sb.Append(timingInfo.sequence);
             sb.Append('}');

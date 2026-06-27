@@ -2101,7 +2101,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_detector: {fileID: 2090000004}
   m_targetTagId: 0
-  m_tagSizeMeters: 0.16
+  m_tagSizeMeters: 0.161
   m_markerFromBasePosition: {x: 0, y: 0, z: 0}
   m_markerFromBaseEulerDegrees: {x: 0, y: 0, z: 0}
   m_anchorLockMinFrames: 15
@@ -2136,29 +2136,6 @@ MonoBehaviour:
   m_baseFromProbePosition: {x: 0, y: 0, z: 0}
   m_baseFromProbeEulerDegrees: {x: 0, y: 0, z: 0}
   m_poseValid: 1
---- !u!114 &2090000007
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2090000000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0c185f6f44764db2b8ef0b7d26886145, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_listenPort: 15000
-  m_pcHost: 127.0.0.1
-  m_pcSyncPort: 15001
-  m_syncIntervalSeconds: 1
-  m_maxAcceptedSyncRttSeconds: 0.02
-  m_syncSampleWindow: 8
-  m_poseBufferCapacity: 512
-  m_poseBufferDurationSeconds: 10
-  m_maxInterpolationSpanSeconds: 0.1
-  m_startOnEnable: 1
-  m_logPacketErrors: 0
 --- !u!114 &2090000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2177,6 +2154,29 @@ MonoBehaviour:
   m_coarseMetersPerSecond: 0.02
   m_fineMetersPerSecond: 0.002
   m_stickDeadZone: 0.15
+--- !u!114 &2090000007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2090000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c185f6f44764db2b8ef0b7d26886145, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_listenPort: 15000
+  m_pcHost: 10.209.235.172
+  m_pcSyncPort: 15001
+  m_syncIntervalSeconds: 1
+  m_maxAcceptedSyncRttSeconds: 0.02
+  m_syncSampleWindow: 8
+  m_poseBufferCapacity: 512
+  m_poseBufferDurationSeconds: 10
+  m_maxInterpolationSpanSeconds: 0.1
+  m_startOnEnable: 1
+  m_logPacketErrors: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
