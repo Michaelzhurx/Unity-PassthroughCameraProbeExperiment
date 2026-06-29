@@ -19,6 +19,8 @@ namespace PassthroughCameraSamples.ProbeExperiment
         public double interpolationSpanSeconds;
         public double pcQuestOffsetSeconds;
         public double pcQuestRttSeconds;
+        public float[] poseRaw;
+        public float[] normalizedData;
         public int sequence;
     }
 

@@ -297,7 +297,9 @@ namespace PassthroughCameraSamples.ProbeExperiment
                 robotTimestampSeconds = packet.robot_time_s,
                 samplePcTimestampUnixSeconds = samplePcTimestamp,
                 pcReceiveUnixSeconds = packet.pc_receive_unix_s,
-                pcSendUnixSeconds = packet.pc_send_unix_s
+                pcSendUnixSeconds = packet.pc_send_unix_s,
+                poseRaw = CopyFloatArray(packet.pose_raw),
+                normalizedData = CopyFloatArray(packet.normalized_data)
             };
 
             lock (m_lock)
@@ -405,6 +407,8 @@ namespace PassthroughCameraSamples.ProbeExperiment
                 interpolationSpanSeconds = 0.0,
                 pcQuestOffsetSeconds = m_pcQuestOffsetSeconds,
                 pcQuestRttSeconds = m_pcQuestRttSeconds,
+                poseRaw = null,
+                normalizedData = null,
                 sequence = 0
             };
         }
@@ -412,6 +416,18 @@ namespace PassthroughCameraSamples.ProbeExperiment
         private static double UnixNowSeconds()
         {
             return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0;
+        }
+
+        private static float[] CopyFloatArray(float[] values)
+        {
+            if (values == null || values.Length == 0)
+            {
+                return null;
+            }
+
+            var copy = new float[values.Length];
+            values.CopyTo(copy, 0);
+            return copy;
         }
 
 #pragma warning disable 0649
@@ -432,6 +448,8 @@ namespace PassthroughCameraSamples.ProbeExperiment
             public double pc_send_unix_s;
             public float[] position;
             public float[] rotation_xyzw;
+            public float[] pose_raw;
+            public float[] normalized_data;
             public bool pose_valid;
         }
 
